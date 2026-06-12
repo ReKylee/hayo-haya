@@ -1,0 +1,6 @@
+/build/
+/.cache/
+/out/
+*.cpp.generated
+*.hpp.generated
+.DS_Store
