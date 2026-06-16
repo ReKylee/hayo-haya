@@ -1,35 +1,40 @@
 {
-    "version": 6,
-    "configurePresets": [
-        {
-            "name": "dev",
-            "displayName": "Dev build",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/dev",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "HYH_REGENERATE_GRAMMAR": "ON"
-            }
-        },
-        {
-            "name": "release",
-            "displayName": "Release build",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "HYH_REGENERATE_GRAMMAR": "ON"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "dev",
-            "configurePreset": "dev"
-        },
-        {
-            "name": "release",
-            "configurePreset": "release"
-        }
-    ]
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Dev build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${hostSystemName}/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "HYH_REGENERATE_GRAMMAR": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${hostSystemName}/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "HYH_REGENERATE_GRAMMAR": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ]
 }

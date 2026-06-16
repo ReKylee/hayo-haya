@@ -1,6 +1,9 @@
 /build/
-/.cache/
-/out/
-*.cpp.generated
-*.hpp.generated
+/bin/
+/generated/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.out
 .DS_Store
