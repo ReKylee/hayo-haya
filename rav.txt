@@ -1,0 +1,54 @@
+== Hebrew sentence IR ==
+1: RoleIntroduction :: העורב היה שליח נאמן
+  subject/name: העורב
+  role/head: שליח gender=Masculine number=Singular
+2: RoleIntroduction :: השועל היה שומר ערמומי
+  subject/name: השועל
+  role/head: שומר gender=Unknown number=Singular
+3: RoleIntroduction :: השער היה חפץ עתיק
+  subject/name: השער
+  role/head: חפץ gender=Unknown number=Singular
+4: PropertyAssignment :: גובה השער היה 12
+  left-number: kind=3 property=גובה owner=שער raw=גובה השער
+5: RoleIntroduction :: כרוז היה שליח נאמן
+  subject/name: כרוז
+  role/head: שליח gender=Masculine number=Singular
+6: RoleIntroduction :: כנפו היה בגובה 12
+  subject/name: כנפו
+  role/head: גובה gender=Masculine number=Singular
+8: ForEachRole :: בזה אחר זה ניגש כל שליח אל שער־הארמון
+  role/head: שליח gender=Masculine number=Singular
+  predicate: נגש root=נ־ג־ש binyan=Nifal number=Singular
+9: Condition :: כאשר כנפו היה כגובה השער
+  left-number: kind=2 property=כנף owner=<current-actor> raw=כנפו
+  right-number: kind=3 property=גובה owner=שער raw=כגובה השער
+10: Speech :: כרוז קרא נמצא השליח!
+  predicate: קרא root=ק־ר־א binyan=Paal number=Singular
+  speech: נמצא השליח!
+== Resolved semantic IR ==
+1: RoleIntroduction :: העורב היה שליח נאמן
+  subject/name: העורב
+  role/head: שליח gender=Masculine number=Singular
+2: RoleIntroduction :: השועל היה שומר ערמומי
+  subject/name: השועל
+  role/head: שומר gender=Unknown number=Singular
+3: RoleIntroduction :: השער היה חפץ עתיק
+  subject/name: השער
+  role/head: חפץ gender=Unknown number=Singular
+4: PropertyAssignment :: גובה השער היה 12
+  left-number: kind=3 property=גובה owner=השער
+5: RoleIntroduction :: כרוז היה שליח נאמן
+  subject/name: כרוז
+  role/head: שליח gender=Masculine number=Singular
+6: RoleIntroduction :: כנפו היה בגובה 12
+  subject/name: כנפו
+  role/head: גובה gender=Masculine number=Singular
+8: ForEachRole :: בזה אחר זה ניגש כל שליח אל שער־הארמון
+  role/head: שליח gender=Masculine number=Singular
+9: Condition :: כאשר כנפו היה כגובה השער
+  left-number: kind=2 property=כנף owner=<current-actor>
+  right-number: kind=3 property=גובה owner=השער
+10: Speech :: כרוז קרא נמצא השליח!
+  speaker/name: כרוז
+  speech: נמצא השליח!
+wrote generated C++: generated/raven.cpp

@@ -1,95 +1,83 @@
-# היה־הייתה Compiler Starter
+# hayo-haya / hyh
 
-Starter project for a Hebrew fairy-tale programming language that compiles to C-style C++.
+`hyh` is a prototype compiler for controlled Hebrew fairy-tale programs.
 
-The current compiler implements a **tiny v0.1 subset**:
+This version keeps the researched architecture: re2c scans raw UTF-8 tokens, Bison groups the stream into raw sentences/blocks, the custom Hebrew layer builds morphology lattices and Hebrew sentence IR, and the fairy-tale semantic layer lowers that into a generic story AST.
 
-- opening with `ארץ` and `ממלכה`
-- importing `cout` from `הממלכה העתיקה`
-- boolean declarations like `השער היה סגור.`
-- text declarations like `על השער נכתב "...".`
-- count declarations like `בקופה נחו 3 מטבעות.`
-- count changes like `נוסף לקופה מטבע אחד.`
-- count loops like `שוב ושוב, כל עוד בקופה נחו פחות מ־20 מטבעות:`
-- count conditions like `כאשר בקופה נחו פחות מ־4 מטבעות:`
-- speech/output like `הכרוז קרא "...".` and `הכרוז קרא את הכתוב שעל השער.`
-- selected narrative sentences as no-op story events
-- ending with `וכך תם סיפורה של ממלכת ...`
-
-The full design grammar is in [`docs/EBNF-v0.1.md`](docs/EBNF-v0.1.md).
-
-## Build with Dev Container
-
-1. Install Docker Desktop, Podman, or another Docker-compatible runtime.
-2. Open this folder in VS Code.
-3. Choose **Reopen in Container**.
-4. Build:
-
-```bash
-cmake --build --preset dev
-```
-
-5. Compile the example:
-
-```bash
-./build/dev/hyh examples/pea.hyh -o out/pea.cpp
-./out/pea
-```
-
-## Build with plain Docker
-
-```bash
-docker build -t haya-hayta .
-docker run --rm -it -v "$PWD":/work haya-hayta bash
-```
-
-Inside the container:
-
-```bash
-cmake --preset dev
-cmake --build --preset dev
-./build/dev/hyh examples/pea.hyh -o out/pea.cpp
-./out/pea
-```
-
-## Local build
-
-You need:
-
-- C++23 compiler
-- CMake
-- Ninja
-- GNU Bison
-- re2c
-
-Then:
+## Build
 
 ```bash
 cmake --preset dev
 cmake --build --preset dev
 ```
 
-To compile `examples/pea.hyh` through the full pipeline and produce `out/pea`:
+The compiler executable is written to:
 
-```bash
-./build/dev/hyh examples/pea.hyh -o out/pea.cpp
+```text
+bin/hyh.exe   # Windows
+bin/hyh       # Linux/devcontainer
 ```
 
-Then run it:
+## Run
 
 ```bash
-./out/pea
+./bin/hyh examples/cinderella.hyh
+./bin/cinderella
 ```
 
-`hyh` compiles the generated C++ by default. Use `--no-compile` to stop after
-writing the generated `.cpp` file, or `--exe <path>` to choose the executable
-path.
+On Windows PowerShell:
 
-## Notes
+```powershell
+.\bin\hyh.exe .\examples\cinderella.hyh
+.\bin\cinderella.exe
+```
 
-For now the lexer returns Hebrew words as `NAME` tokens and the parser/driver normalize prefixes where grammar expects them. For example:
+By default `hyh` compiles the generated C++ using:
 
-- `השער` becomes the definite name `שער`
-- `בקופה` becomes the in-container name `קופה`
+```text
+--cxx <compiler> > HYH_CXX > CXX > clang++
+```
 
-This avoids splitting every word that starts with `ב`, `ל`, `מ`, or `ה`, which would incorrectly break normal words like `מטבעות`.
+Generate C++ only:
+
+```bash
+./bin/hyh examples/cinderella.hyh --no-compile
+```
+
+Debug the Hebrew layer:
+
+```bash
+./bin/hyh examples/cinderella.hyh --no-compile --dump-lattice
+./bin/hyh examples/cinderella.hyh --no-compile --dump-ir
+./bin/hyh examples/raven.hyh --no-compile --dump-ir
+```
+
+## Examples
+
+- `examples/cinderella.hyh`: validates that Cinderella is data, not compiler logic.
+- `examples/raven.hyh`: validates that conditions are generic property comparisons, not `מידת`-specific.
+- `examples/generic-condition.hyh`: minimal non-Cinderella test of `כנפו == גובה השער`.
+- `examples/shoe-size-property.hyh`: validates that `מידת נעל` is one role property, not a shoe entity lookup.
+- `examples/import-output.hyh`: validates imported output aliases lowering to generated calls.
+- `examples/magic-mirror-input.hyh`: validates magic-mirror questions and typed answer-slot inference.
+- `examples/bad-agreement.hyh`: demonstrates the `HN004` agreement diagnostic.
+- `examples/bad-import-alias-call.hyh`: demonstrates the `HN013` imported-alias call diagnostic.
+- `examples/bad-quantity.hyh`: demonstrates the `HN005` Hebrew quantity phrase diagnostic.
+
+## Important design point
+
+The compiler does not contain story-specific fields like `princesses`, `shoeSize`, or `footSize`, and the condition parser is not tied to `מידת`.
+
+The Hebrew layer recognizes word/phrase structure and the semantic layer emits generic facts such as:
+
+```text
+Entity("דריזלה") has role "נסיכה"
+Entity("שער").numbers["גובה"] = 12
+currentActor.numbers["כנף"] == Entity("שער").numbers["גובה"]
+roles["שליח"] is iterated
+```
+
+The compiler may use generic maps internally while resolving Hebrew discourse,
+but generated C++ uses concrete role structs and role collections. Each
+princess, messenger, or object is an instance of the relevant generated role
+type, and loops over `כל <role>` iterate the collection of those instances.

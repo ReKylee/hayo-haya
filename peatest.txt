@@ -1,0 +1,82 @@
+== Hebrew sentence IR ==
+1: RoleIntroduction :: הָיֹה הָיְתָה, בארץ רחוקה רחוקה ושמה ארץ־הגשם, ממלכה קטנה ושמה עדשת־הזהב
+  subject/name: היה
+  role/head: בארץ gender=Unknown number=Singular
+3: NarrativeEvent :: מן הממלכה העתיקה הגיע cout ושמו כרוז
+5: NarrativeEvent :: בממלכה ההיא עמד ארמון גבוה, ולארמון שער ברזל
+6: RoleIntroduction :: שער־הארמון היה סגור
+  subject/name: שער־הארמון
+  role/head: סגור gender=Unknown number=Singular
+7: NarrativeEvent :: על שער־הארמון נכתב מי שבא בלב אמת ייכנס
+8: NarrativeEvent :: בקופת־האוצר נחו 3 מטבעות
+9: NarrativeEvent :: בחדר־האורחים נחו 0 מזרנים
+11: NarrativeEvent :: בלילה סוער אחד נשמעו שלוש דפיקות בשער
+12: NarrativeEvent :: שער־הארמון נפתח
+13: NarrativeEvent :: אל האולם נכנסה אורחת רטובה מן הגשם
+15: NarrativeEvent :: הכרוז קרא את הכתוב שעל שער־הארמון
+16: NarrativeEvent :: המלכה הביטה באורחת ושתקה
+17: NarrativeEvent :: היא הסתירה עדשה אחת מתחת למיטת־האורחת
+19: NarrativeEvent :: שוב ושוב, כל עוד בחדר־האורחים נחו פחות מ־ 20 מזרנים
+20: NarrativeEvent :: נוסף לחדר־האורחים מזרן אחד
+21: Speech :: הכרוז קרא עוד מזרן אחד הונח על המיטה
+  predicate: קרא root=ק־ר־א binyan=Paal number=Singular
+  speech: עוד מזרן אחד הונח על המיטה
+22: NarrativeEvent :: כך חזר הדבר
+24: NarrativeEvent :: בבוקר הראשון שאלה המלכה את האורחת איך עברה עליה שנת הלילה
+26: Speech :: כאשר אמרה האורחת לא עצמתי עין כל הלילה
+  predicate: אמר root=א־מ־ר binyan=Paal number=Singular
+  speech: לא עצמתי עין כל הלילה
+27: NarrativeEvent :: המלכה ידעה כי אמת בפי האורחת
+28: NarrativeEvent :: נוסף לקופת־האוצר מטבע אחד
+29: Speech :: הכרוז קרא נסיכה אמיתית באה אל עדשת־הזהב
+  predicate: קרא root=ק־ר־א binyan=Paal number=Singular
+  speech: נסיכה אמיתית באה אל עדשת־הזהב
+30: NarrativeEvent :: תם הדבר
+32: NarrativeEvent :: כאשר בקופת־האוצר נחו פחות מ־ 4 מטבעות
+33: Speech :: הכרוז קרא עוד לא הושלם המבחן
+  predicate: קרא root=ק־ר־א binyan=Paal number=Singular
+  speech: עוד לא הושלם המבחן
+34: NarrativeEvent :: תם הדבר
+36: NarrativeEvent :: וכך נודע דבר העדשה בכל ממלכת עדשת־הזהב
+37: NarrativeEvent :: וכך תם סיפורה של ממלכת עדשת־הזהב
+== Resolved semantic IR ==
+1: RoleIntroduction :: הָיֹה הָיְתָה, בארץ רחוקה רחוקה ושמה ארץ־הגשם, ממלכה קטנה ושמה עדשת־הזהב
+  subject/name: היה
+  role/head: בארץ gender=Unknown number=Singular
+3: NarrativeEvent :: מן הממלכה העתיקה הגיע cout ושמו כרוז
+5: NarrativeEvent :: בממלכה ההיא עמד ארמון גבוה, ולארמון שער ברזל
+6: RoleIntroduction :: שער־הארמון היה סגור
+  subject/name: שער־הארמון
+  role/head: סגור gender=Unknown number=Singular
+7: NarrativeEvent :: על שער־הארמון נכתב מי שבא בלב אמת ייכנס
+8: NarrativeEvent :: בקופת־האוצר נחו 3 מטבעות
+9: NarrativeEvent :: בחדר־האורחים נחו 0 מזרנים
+11: NarrativeEvent :: בלילה סוער אחד נשמעו שלוש דפיקות בשער
+12: NarrativeEvent :: שער־הארמון נפתח
+13: NarrativeEvent :: אל האולם נכנסה אורחת רטובה מן הגשם
+15: NarrativeEvent :: הכרוז קרא את הכתוב שעל שער־הארמון
+16: NarrativeEvent :: המלכה הביטה באורחת ושתקה
+17: NarrativeEvent :: היא הסתירה עדשה אחת מתחת למיטת־האורחת
+19: NarrativeEvent :: שוב ושוב, כל עוד בחדר־האורחים נחו פחות מ־ 20 מזרנים
+20: NarrativeEvent :: נוסף לחדר־האורחים מזרן אחד
+21: Speech :: הכרוז קרא עוד מזרן אחד הונח על המיטה
+  speaker/name: הכרוז
+  speech: עוד מזרן אחד הונח על המיטה
+22: NarrativeEvent :: כך חזר הדבר
+24: NarrativeEvent :: בבוקר הראשון שאלה המלכה את האורחת איך עברה עליה שנת הלילה
+26: Speech :: כאשר אמרה האורחת לא עצמתי עין כל הלילה
+  speaker/name: כאשר
+  speech: לא עצמתי עין כל הלילה
+27: NarrativeEvent :: המלכה ידעה כי אמת בפי האורחת
+28: NarrativeEvent :: נוסף לקופת־האוצר מטבע אחד
+29: Speech :: הכרוז קרא נסיכה אמיתית באה אל עדשת־הזהב
+  speaker/name: הכרוז
+  speech: נסיכה אמיתית באה אל עדשת־הזהב
+30: NarrativeEvent :: תם הדבר
+32: NarrativeEvent :: כאשר בקופת־האוצר נחו פחות מ־ 4 מטבעות
+33: Speech :: הכרוז קרא עוד לא הושלם המבחן
+  speaker/name: הכרוז
+  speech: עוד לא הושלם המבחן
+34: NarrativeEvent :: תם הדבר
+36: NarrativeEvent :: וכך נודע דבר העדשה בכל ממלכת עדשת־הזהב
+37: NarrativeEvent :: וכך תם סיפורה של ממלכת עדשת־הזהב

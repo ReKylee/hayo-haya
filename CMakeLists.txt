@@ -67,6 +67,9 @@ add_executable(hyh
  src/hebrew/selection.cpp
  src/hebrew/sentence_analyzer.cpp
  src/fairy/discourse_resolver.cpp
+ src/fairy/mirror_questions.cpp
+ src/fairy/mirror_type_resolver.cpp
+ src/fairy/semantic_dump.cpp
  src/fairy/semantic_analyzer.cpp
  "${PARSER_SRC}"
  "${LEXER_SRC}"

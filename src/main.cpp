@@ -1,3 +1,8 @@
+#include "codegen/cpp_codegen.hpp"
+#include "driver.hpp"
+
+#include <args.hxx>
+
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -6,182 +11,216 @@
 #include <stdexcept>
 #include <string>
 
-#include "codegen.hpp"
-#include "driver.hpp"
-
-#ifndef HYH_DEFAULT_CXX_COMPILER
-#define HYH_DEFAULT_CXX_COMPILER "c++"
-#endif
-
 namespace {
 
-struct Options {
-    std::string inputPath;
-    std::string outputPath = "out/story.cpp";
-    std::string executablePath;
-    bool compile = true;
-};
-
-static std::string readFile(const std::string& path) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file) {
-        throw std::runtime_error("Could not open file: " + path);
-    }
-
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
-static void printUsage() {
-    std::cerr << "usage: hyh <file.hyh> [-o output.cpp] [--exe output_executable] [--compile|--no-compile]\n";
-}
-
-static Options parseOptions(int argc, char** argv) {
-    if (argc < 2) {
-        printUsage();
-        throw std::runtime_error("missing input file");
-    }
-
-    Options options;
-    options.inputPath = argv[1];
-
-    for (int i = 2; i < argc; ++i) {
-        const std::string arg = argv[i];
-        if (arg == "-o") {
-            if (++i >= argc) {
-                printUsage();
-                throw std::runtime_error("missing value after -o");
-            }
-            options.outputPath = argv[i];
-        } else if (arg == "--exe") {
-            if (++i >= argc) {
-                printUsage();
-                throw std::runtime_error("missing value after --exe");
-            }
-            options.executablePath = argv[i];
-        } else if (arg == "--compile") {
-            options.compile = true;
-        } else if (arg == "--no-compile") {
-            options.compile = false;
-        } else {
-            printUsage();
-            throw std::runtime_error("unknown option: " + arg);
+    std::string readFile(const std::filesystem::path& path) {
+        std::ifstream in(path, std::ios::binary);
+        if (!in) {
+            throw std::runtime_error("could not open input file: " + path.string());
         }
+        std::ostringstream ss;
+        ss << in.rdbuf();
+        return ss.str();
     }
 
-    return options;
-}
+    void writeFile(const std::filesystem::path& path, const std::string& text) {
+        if (path.has_parent_path()) {
+            std::filesystem::create_directories(path.parent_path());
+        }
+        std::ofstream out(path, std::ios::binary);
+        if (!out) {
+            throw std::runtime_error("could not open output file: " + path.string());
+        }
+        out << text;
+    }
 
-static std::string defaultExecutablePath(const std::string& outputPath) {
-    std::filesystem::path executable = outputPath;
-    executable.replace_extension();
+    std::string defaultGeneratedCppPath(const std::string& inputPath) {
+        auto path = std::filesystem::path(inputPath).filename();
+        path.replace_extension(".cpp");
+        return (std::filesystem::path("generated") / path).string();
+    }
+
+    std::string defaultExePath(const std::string& inputPath) {
+        auto path = std::filesystem::path(inputPath).filename();
 #ifdef _WIN32
-    executable += ".exe";
+        path.replace_extension(".exe");
+#else
+        path.replace_extension("");
 #endif
-    return executable.string();
-}
+        return (std::filesystem::path("bin") / path).string();
+    }
 
-static std::string commandQuote(const std::string& value) {
-    std::string quoted = "\"";
-    for (char c : value) {
-        if (c == '"') {
-            quoted += '\\';
+    void ensureParentDirectory(const std::filesystem::path& path) {
+        if (path.has_parent_path()) {
+            std::filesystem::create_directories(path.parent_path());
         }
-        quoted += c;
-    }
-    quoted += '"';
-    return quoted;
-}
-
-static bool looksLikeMsvc(const std::string& compiler) {
-    const std::filesystem::path path = compiler;
-    const std::string filename = path.filename().string();
-    return filename == "cl" || filename == "cl.exe";
-}
-
-static std::string backendCompiler() {
-    if (const char* fromEnv = std::getenv("HYH_CXX")) {
-        return fromEnv;
-    }
-    if (const char* fromEnv = std::getenv("CXX")) {
-        return fromEnv;
-    }
-    return HYH_DEFAULT_CXX_COMPILER;
-}
-
-static void compileGeneratedCpp(const std::string& cppPath, const std::string& executablePath) {
-    const std::string compiler = backendCompiler();
-    std::string command;
-
-    if (looksLikeMsvc(compiler)) {
-        command = commandQuote(compiler)
-            + " /nologo /std:c++latest /EHsc "
-            + commandQuote(cppPath)
-            + " /Fe:"
-            + commandQuote(executablePath);
-    } else {
-        command = commandQuote(compiler)
-            + " -std=c++23 "
-            + commandQuote(cppPath)
-            + " -o "
-            + commandQuote(executablePath);
     }
 
-    std::cout << "compiling: " << executablePath << "\n";
-    const int result = std::system(command.c_str());
-    if (result != 0) {
-        throw std::runtime_error("C++ compilation failed");
+    std::string quoteCommandArg(const std::string& arg) {
+#ifdef _WIN32
+        std::string quoted = "\"";
+        for (const char c: arg) {
+            if (c == '"') {
+                quoted += "\\\"";
+            } else {
+                quoted += c;
+            }
+        }
+        quoted += '"';
+        return quoted;
+#else
+        std::string quoted = "'";
+        for (const char c: arg) {
+            if (c == '\'') {
+                quoted += "'\\''";
+            } else {
+                quoted += c;
+            }
+        }
+        quoted += '\'';
+        return quoted;
+#endif
     }
-}
+
+    std::string selectCxxCompiler(const hyh::CompileOptions& options) {
+        if (!options.cxxCompiler.empty()) {
+            return options.cxxCompiler;
+        }
+        if (const char* env = std::getenv("HYH_CXX")) {
+            return env;
+        }
+        if (const char* env = std::getenv("CXX")) {
+            return env;
+        }
+        return "clang++";
+    }
+
+    std::string defaultLinkFlags() {
+#ifdef _WIN32
+        return " -lstdc++exp";
+#else
+        return "";
+#endif
+    }
+
+    hyh::CompileOptions parseOptions(int argc, char** argv) {
+        args::ArgumentParser parser("hyh: a Hebrew fairy-tale compiler.",
+                                    "Default output: generated/<story>.cpp and bin/<story>[.exe].");
+
+        args::HelpFlag help(parser, "help", "Show this help message", {"h", "help"});
+        args::ValueFlag<std::string> outputCpp(parser, "path", "Generated C++ output path", {"o", "output"});
+        args::ValueFlag<std::string> outputExe(parser, "path", "Executable output path", {"exe"});
+        args::ValueFlag<std::string> cxxCompiler(parser, "compiler", "C++ compiler for generated code", {"cxx"});
+        args::Flag compile(parser, "compile", "Compile generated C++ to an executable; already the default",
+                           {"compile"});
+        args::Flag noCompile(parser, "no-compile", "Only emit generated C++; do not compile it", {"no-compile"});
+        args::Flag dumpLattice(parser, "dump-lattice", "Dump Hebrew morphological lattice", {"dump-lattice"});
+        args::Flag dumpIr(parser, "dump-ir", "Dump both Hebrew sentence IR and resolved semantic IR", {"dump-ir"});
+        args::Flag dumpHebrewIr(parser, "dump-hebrew-ir", "Dump selected Hebrew sentence IR only", {"dump-hebrew-ir"});
+        args::Flag dumpSemanticIr(parser, "dump-semantic-ir", "Dump resolved semantic story IR only",
+                                  {"dump-semantic-ir"});
+        args::Positional<std::string> input(parser, "input.hyh", "Input story file");
+
+        try {
+            parser.ParseCLI(argc, argv);
+        } catch (const args::Help&) {
+            std::cout << parser;
+            std::exit(0);
+        } catch (const args::ValidationError& error) {
+            std::cerr << error.what() << '\n' << parser;
+            std::exit(2);
+        } catch (const args::ParseError& error) {
+            std::cerr << error.what() << '\n' << parser;
+            std::exit(2);
+        }
+
+        if (compile && noCompile) {
+            std::cerr << "cannot use both --compile and --no-compile\n" << parser;
+            std::exit(2);
+        }
+
+        hyh::CompileOptions options;
+        options.compileGeneratedCpp = !static_cast<bool>(noCompile);
+        options.dumpLattice = static_cast<bool>(dumpLattice);
+        options.dumpHebrewIr = static_cast<bool>(dumpIr) || static_cast<bool>(dumpHebrewIr);
+        options.dumpSemanticIr = static_cast<bool>(dumpIr) || static_cast<bool>(dumpSemanticIr);
+        if (input) {
+            options.inputPath = args::get(input);
+        }
+        if (outputCpp) {
+            options.outputCppPath = args::get(outputCpp);
+        }
+        if (outputExe) {
+            options.outputExePath = args::get(outputExe);
+        }
+        if (cxxCompiler) {
+            options.cxxCompiler = args::get(cxxCompiler);
+        }
+        if (options.inputPath.empty()) {
+            std::cerr << parser;
+            std::exit(2);
+        }
+        if (options.outputCppPath.empty()) {
+            options.outputCppPath = defaultGeneratedCppPath(options.inputPath);
+        }
+        if (options.compileGeneratedCpp && options.outputExePath.empty()) {
+            options.outputExePath = defaultExePath(options.inputPath);
+        }
+        return options;
+    }
 
 } // namespace
 
 int main(int argc, char** argv) {
     try {
-        const Options options = parseOptions(argc, argv);
-        const std::string executablePath = options.executablePath.empty()
-            ? defaultExecutablePath(options.outputPath)
-            : options.executablePath;
+        const auto options = parseOptions(argc, argv);
+        const auto source = readFile(options.inputPath);
 
-        std::string source = readFile(options.inputPath);
-        hyh::Driver driver(std::move(source));
+        hyh::Driver driver;
+        const bool ok = driver.parse(source);
 
-        const int result = driver.parse();
-        if (result != 0 || driver.hadError()) {
-            std::cerr << "parse failed\n";
-            return result == 0 ? 1 : result;
+        if (options.dumpLattice) {
+            driver.dumpLattice(std::cout);
         }
-
-        const std::filesystem::path outputFile = options.outputPath;
-        if (outputFile.has_parent_path()) {
-            std::filesystem::create_directories(outputFile.parent_path());
-        }
-
-        {
-            std::ofstream out(options.outputPath, std::ios::binary);
-            if (!out) {
-                throw std::runtime_error("Could not open output file: " + options.outputPath);
+        if (options.dumpHebrewIr && options.dumpSemanticIr) {
+            driver.dumpIr(std::cout);
+        } else {
+            if (options.dumpHebrewIr) {
+                driver.dumpHebrewIr(std::cout);
             }
-
-            hyh::CodeGenerator generator;
-            generator.generate(driver.program(), out);
-        }
-
-        std::cout << "parsed successfully\n";
-        std::cout << "generated: " << options.outputPath << "\n";
-
-        if (options.compile) {
-            const std::filesystem::path executableFile = executablePath;
-            if (executableFile.has_parent_path()) {
-                std::filesystem::create_directories(executableFile.parent_path());
+            if (options.dumpSemanticIr) {
+                driver.dumpSemanticIr(std::cout);
             }
-            compileGeneratedCpp(options.outputPath, executablePath);
+        }
+        for (const auto& diagnostic: driver.program().diagnostics) {
+            std::cerr << diagnostic.code << " line " << diagnostic.line << ": " << diagnostic.message << '\n';
+        }
+        if (!ok) {
+            return 1;
         }
 
+        const auto generated = hyh::codegen::CppCodeGenerator{}.generate(driver.program());
+        writeFile(options.outputCppPath, generated);
+        std::cout << "wrote generated C++: " << options.outputCppPath << '\n';
+
+        if (!options.compileGeneratedCpp) {
+            return 0;
+        }
+
+        ensureParentDirectory(options.outputExePath);
+        const auto selectedCompiler = selectCxxCompiler(options);
+        const std::string command = selectedCompiler + " -std=c++2b " + quoteCommandArg(options.outputCppPath) + " -o "
+                                  + quoteCommandArg(options.outputExePath) + defaultLinkFlags();
+        std::cout << "running C++ compiler: " << command << '\n';
+        const int result = std::system(command.c_str());
+        if (result != 0) {
+            std::cerr << "failed to compile generated C++ with command: " << command << '\n';
+            return result;
+        }
+        std::cout << "wrote executable: " << options.outputExePath << '\n';
         return 0;
-    } catch (const std::exception& e) {
-        std::cerr << "error: " << e.what() << "\n";
+    } catch (const std::exception& error) {
+        std::cerr << "hyh: " << error.what() << '\n';
         return 1;
     }
 }

@@ -1,0 +1,62 @@
+== Hebrew sentence IR ==
+1: RoleIntroduction :: דריזלה הייתה נסיכה גאה
+  subject/name: דריזלה
+  role/head: נסיכה gender=Feminine number=Singular
+2: PropertyAssignment :: מידת רגלה הייתה 40
+  left-number: kind=2 property=מידה־רגל owner=<current-actor> raw=מידת רגלה
+3: RoleIntroduction :: אנסטסיה הייתה נסיכה מפונקת
+  subject/name: אנסטסיה
+  role/head: נסיכה gender=Feminine number=Singular
+4: RoleIntroduction :: אלה הייתה נסיכה שקטה
+  subject/name: אלה
+  role/head: נסיכה gender=Feminine number=Singular
+5: RoleIntroduction :: נעל־הזכוכית הייתה חפץ עתיק
+  subject/name: נעל־הזכוכית
+  role/head: חפץ gender=Unknown number=Singular
+6: PropertyAssignment :: מידת רגלה הייתה 39
+  left-number: kind=2 property=מידה־רגל owner=<current-actor> raw=מידת רגלה
+7: PropertyAssignment :: מידת הנעל הייתה 37
+  left-number: kind=3 property=מידה owner=נעל raw=מידת הנעל
+8: RoleIntroduction :: הכרוז היה שליח נאמן
+  subject/name: הכרוז
+  role/head: שליח gender=Masculine number=Singular
+10: ForEachRole :: בזו אחר זו נִגְּשָׁה כל נסיכה אל נעל־הזכוכית
+  role/head: נסיכה gender=Feminine number=Singular
+  predicate: נגש root=נ־ג־ש binyan=Nifal number=Singular
+11: Condition :: כאשר מידת רגלה הייתה כמידת הנעל
+  left-number: kind=2 property=מידה־רגל owner=<current-actor> raw=מידת רגלה
+  right-number: kind=3 property=מידה owner=נעל raw=כמידת הנעל
+12: Speech :: הכרוז קרא נמצאה בעלת הנעל!
+  predicate: קרא root=ק־ר־א binyan=Paal number=Singular
+  speech: נמצאה בעלת הנעל!
+== Resolved semantic IR ==
+1: RoleIntroduction :: דריזלה הייתה נסיכה גאה
+  subject/name: דריזלה
+  role/head: נסיכה gender=Feminine number=Singular
+2: PropertyAssignment :: מידת רגלה הייתה 40
+  left-number: kind=2 property=מידה־רגל owner=<current-actor>
+3: RoleIntroduction :: אנסטסיה הייתה נסיכה מפונקת
+  subject/name: אנסטסיה
+  role/head: נסיכה gender=Feminine number=Singular
+4: RoleIntroduction :: אלה הייתה נסיכה שקטה
+  subject/name: אלה
+  role/head: נסיכה gender=Feminine number=Singular
+5: RoleIntroduction :: נעל־הזכוכית הייתה חפץ עתיק
+  subject/name: נעל־הזכוכית
+  role/head: חפץ gender=Unknown number=Singular
+6: PropertyAssignment :: מידת רגלה הייתה 39
+  left-number: kind=2 property=מידה־רגל owner=<current-actor>
+7: PropertyAssignment :: מידת הנעל הייתה 37
+  left-number: kind=3 property=מידה owner=נעל־הזכוכית
+8: RoleIntroduction :: הכרוז היה שליח נאמן
+  subject/name: הכרוז
+  role/head: שליח gender=Masculine number=Singular
+10: ForEachRole :: בזו אחר זו נִגְּשָׁה כל נסיכה אל נעל־הזכוכית
+  role/head: נסיכה gender=Feminine number=Singular
+11: Condition :: כאשר מידת רגלה הייתה כמידת הנעל
+  left-number: kind=2 property=מידה־רגל owner=<current-actor>
+  right-number: kind=3 property=מידה owner=נעל־הזכוכית
+12: Speech :: הכרוז קרא נמצאה בעלת הנעל!
+  speaker/name: הכרוז
+  speech: נמצאה בעלת הנעל!
+wrote generated C++: generated/cinderella.cpp

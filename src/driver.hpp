@@ -1,55 +1,53 @@
 #pragma once
 
-#include <optional>
+#include <iosfwd>
 #include <string>
+#include <vector>
 
-#include "ast.hpp"
-#include "lexer.hpp"
+#include "fairy/semantic_analyzer.hpp"
+#include "fairy/story_ast.hpp"
+#include "hebrew/morphology.hpp"
+#include "hebrew/sentence_ir.hpp"
+#include "raw/raw_syntax.hpp"
 
 namespace hyh {
 
-class Driver {
-public:
-    explicit Driver(std::string source);
+    struct CompileOptions {
+        bool compileGeneratedCpp = true;
+        bool dumpLattice = false;
+        bool dumpHebrewIr = false;
+        bool dumpSemanticIr = false;
+        std::string inputPath;
+        std::string outputCppPath;
+        std::string outputExePath;
+        std::string cxxCompiler;
+    };
 
-    Parser::symbol_type lex();
-    int parse();
+    class Driver {
+    public:
+        bool parse(const std::string& source);
 
-    void reportError(const Parser::location_type& location, const std::string& message);
+        void addRawLine(std::vector<Lexeme> lexemes, RawLineTerminator terminator);
+        void addSyntaxError(const std::string& message);
 
-    void setCountry(std::string name);
-    void setKingdom(std::string name);
+        [[nodiscard]] const fairy::Program& program() const {
+            return program_;
+        }
 
-    void addStdImport(std::string alias, std::string symbol);
-    void addBoolDecl(std::string object, std::string state);
-    void addTextDecl(std::string object, std::string value);
-    void addCountDecl(std::string container, int amount, std::string unit);
+        void dumpLattice(std::ostream& out) const;
+        void dumpHebrewIr(std::ostream& out) const;
+        void dumpSemanticIr(std::ostream& out) const;
+        void dumpIr(std::ostream& out) const;
 
-    void addPrintString(std::string alias, std::string value);
-    void addPrintWrittenText(std::string alias, std::string object);
-    void addStatement(Statement statement);
+    private:
+        std::vector<RawNode> buildRawTree() const;
+        std::vector<fairy::SemanticInputNode> analyzeNodes(const std::vector<RawNode>& nodes);
 
-    Statement makePrintString(std::string alias, std::string value) const;
-    Statement makePrintWrittenText(std::string alias, std::string object) const;
-    Statement makeCountChange(std::string container, std::string unit, int amount) const;
-    Statement makeLoop(CountCondition condition, std::vector<Statement> body) const;
-    Statement makeCondition(CountCondition condition, std::vector<Statement> body) const;
-    Statement makeUtteranceCondition(std::vector<Statement> body) const;
-    Statement makeNarrative() const;
-    CountCondition makeCountCondition(std::string container, std::string unit, int amount) const;
-
-    void finish(std::string kingdomName);
-
-    std::string stripOptionalDefinite(std::string text) const;
-    std::string stripRequiredPrefix(std::string text, const std::string& utf8Prefix, const std::string& description) const;
-
-    const Program& program() const;
-    bool hadError() const;
-
-private:
-    Lexer lexer_;
-    Program program_;
-    bool hadError_ = false;
-};
+        std::vector<RawLine> rawLines_;
+        std::vector<hebrew::MorphLattice> lattices_;
+        std::vector<hebrew::HebrewSentence> sentenceIr_;
+        fairy::Program program_;
+        std::vector<std::string> syntaxErrors_;
+    };
 
 } // namespace hyh

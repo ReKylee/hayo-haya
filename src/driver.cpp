@@ -1,169 +1,126 @@
 #include "driver.hpp"
 
-#include <iostream>
-#include <stdexcept>
-#include <utility>
+#include "fairy/semantic_dump.hpp"
+#include "hyh_grammar_parser.hpp"
+#include "lexer.hpp"
 
-#include "parser.hpp"
+#include <iostream>
 
 namespace hyh {
+    namespace {
 
-Driver::Driver(std::string source)
-    : lexer_(std::move(source)) {}
+        std::size_t lineIndent(const RawLine& line) {
+            if (line.lexemes.empty()) {
+                return 0;
+            }
+            return line.lexemes.front().column;
+        }
 
-Parser::symbol_type Driver::lex() {
-    return lexer_.next();
-}
+        struct TreeFrame {
+            std::size_t indent = 0;
+            std::vector<RawNode>* nodes = nullptr;
+        };
 
-int Driver::parse() {
-    Parser parser(*this);
-    return parser.parse();
-}
+    } // namespace
 
-void Driver::reportError(const Parser::location_type& location, const std::string& message) {
-    hadError_ = true;
-    std::cerr << "שיבוש בסיפור";
-    if (location.begin.line > 0) {
-        std::cerr << " near line " << location.begin.line;
+    bool Driver::parse(const std::string& source) {
+        rawLines_.clear();
+        lattices_.clear();
+        sentenceIr_.clear();
+        program_ = fairy::Program{};
+        syntaxErrors_.clear();
+
+        Lexer lexer(source);
+        GrammarParser parser(lexer, *this);
+        const int result = parser.parse();
+        if (result != 0 || !syntaxErrors_.empty()) {
+            for (const auto& error: syntaxErrors_) {
+                program_.diagnostics.push_back(fairy::Diagnostic{"SYNTAX", 0, error});
+            }
+            return false;
+        }
+
+        const auto tree = buildRawTree();
+        auto semanticNodes = analyzeNodes(tree);
+        program_ = fairy::SemanticAnalyzer{}.analyze(semanticNodes);
+        return program_.diagnostics.empty();
     }
-    std::cerr << ": " << message << '\n';
-}
 
-void Driver::setCountry(std::string name) {
-    program_.country = std::move(name);
-}
-
-void Driver::setKingdom(std::string name) {
-    program_.kingdom = std::move(name);
-}
-
-void Driver::addStdImport(std::string alias, std::string symbol) {
-    program_.imports.push_back(ImportDecl{
-        .alias = std::move(alias),
-        .source = "הממלכה העתיקה",
-        .symbol = std::move(symbol),
-    });
-}
-
-void Driver::addBoolDecl(std::string object, std::string state) {
-    program_.decls.push_back(BoolDecl{
-        .object = std::move(object),
-        .state = std::move(state),
-    });
-}
-
-void Driver::addTextDecl(std::string object, std::string value) {
-    program_.decls.push_back(TextDecl{
-        .object = std::move(object),
-        .value = std::move(value),
-    });
-}
-
-void Driver::addCountDecl(std::string container, int amount, std::string unit) {
-    program_.decls.push_back(CountDecl{
-        .container = std::move(container),
-        .amount = amount,
-        .unit = std::move(unit),
-    });
-}
-
-void Driver::addPrintString(std::string alias, std::string value) {
-    program_.stmts.push_back(makePrintString(std::move(alias), std::move(value)));
-}
-
-void Driver::addPrintWrittenText(std::string alias, std::string object) {
-    program_.stmts.push_back(makePrintWrittenText(std::move(alias), std::move(object)));
-}
-
-void Driver::addStatement(Statement statement) {
-    program_.stmts.push_back(std::move(statement));
-}
-
-Statement Driver::makePrintString(std::string alias, std::string value) const {
-    return Statement{PrintStringStmt{
-        .alias = std::move(alias),
-        .value = std::move(value),
-    }};
-}
-
-Statement Driver::makePrintWrittenText(std::string alias, std::string object) const {
-    return Statement{PrintWrittenTextStmt{
-        .alias = std::move(alias),
-        .object = std::move(object),
-    }};
-}
-
-Statement Driver::makeCountChange(std::string container, std::string unit, int amount) const {
-    return Statement{CountChangeStmt{
-        .container = std::move(container),
-        .unit = std::move(unit),
-        .amount = amount,
-    }};
-}
-
-Statement Driver::makeLoop(CountCondition condition, std::vector<Statement> body) const {
-    return Statement{LoopStmt{
-        .condition = std::move(condition),
-        .body = std::move(body),
-    }};
-}
-
-Statement Driver::makeCondition(CountCondition condition, std::vector<Statement> body) const {
-    return Statement{ConditionStmt{
-        .condition = std::move(condition),
-        .body = std::move(body),
-    }};
-}
-
-Statement Driver::makeUtteranceCondition(std::vector<Statement> body) const {
-    return Statement{UtteranceConditionStmt{
-        .body = std::move(body),
-    }};
-}
-
-Statement Driver::makeNarrative() const {
-    return Statement{NarrativeStmt{}};
-}
-
-CountCondition Driver::makeCountCondition(std::string container, std::string unit, int amount) const {
-    return CountCondition{
-        .container = std::move(container),
-        .unit = std::move(unit),
-        .amount = amount,
-    };
-}
-
-void Driver::finish(std::string kingdomName) {
-    if (!program_.kingdom.empty() && kingdomName != program_.kingdom) {
-        hadError_ = true;
-        std::cerr << "שיבוש בסיפור: הסיפור נפתח בממלכת " << program_.kingdom
-                  << " אך הסתיים בממלכת " << kingdomName << "\n";
+    void Driver::addRawLine(std::vector<Lexeme> lexemes, RawLineTerminator terminator) {
+        if (lexemes.empty()) {
+            return;
+        }
+        RawLine line;
+        line.line = lexemes.front().line;
+        line.indent = lineIndent(RawLine{.lexemes = lexemes});
+        line.terminator = terminator;
+        line.lexemes = std::move(lexemes);
+        rawLines_.push_back(std::move(line));
     }
-}
 
-std::string Driver::stripOptionalDefinite(std::string text) const {
-    // Hebrew ה is two bytes in UTF-8. Keywords are recognized before NAME tokens,
-    // so this is only applied to identifiers such as הכרוז or השער.
-    static const std::string he = "ה";
-    if (text.rfind(he, 0) == 0 && text.size() > he.size()) {
-        return text.substr(he.size());
+    void Driver::addSyntaxError(const std::string& message) {
+        syntaxErrors_.push_back(message);
     }
-    return text;
-}
 
-std::string Driver::stripRequiredPrefix(std::string text, const std::string& utf8Prefix, const std::string& description) const {
-    if (text.rfind(utf8Prefix, 0) != 0 || text.size() <= utf8Prefix.size()) {
-        throw std::runtime_error("Expected " + description + " to start with prefix '" + utf8Prefix + "', got: " + text);
+    std::vector<RawNode> Driver::buildRawTree() const {
+        std::vector<RawNode> roots;
+        std::vector<TreeFrame> stack;
+        stack.push_back(TreeFrame{0, &roots});
+
+        for (const auto& line: rawLines_) {
+            const auto indent = line.indent;
+            while (stack.size() > 1 && indent <= stack.back().indent) {
+                stack.pop_back();
+            }
+
+            stack.back().nodes->push_back(RawNode{line, {}});
+            auto& inserted = stack.back().nodes->back();
+            if (line.startsBlock()) {
+                stack.push_back(TreeFrame{indent, &inserted.children});
+            }
+        }
+        return roots;
     }
-    return text.substr(utf8Prefix.size());
-}
 
-const Program& Driver::program() const {
-    return program_;
-}
+    std::vector<fairy::SemanticInputNode> Driver::analyzeNodes(const std::vector<RawNode>& nodes) {
+        std::vector<fairy::SemanticInputNode> result;
+        hebrew::Analyzer analyzer;
+        hebrew::SentenceAnalyzer sentenceAnalyzer;
 
-bool Driver::hadError() const {
-    return hadError_;
-}
+        for (const auto& node: nodes) {
+            auto lattice = analyzer.analyze(node.line.lexemes);
+            auto sentence = sentenceAnalyzer.analyze(lattice, node.line);
+            lattices_.push_back(lattice);
+            sentenceIr_.push_back(sentence);
+            fairy::SemanticInputNode semanticNode;
+            semanticNode.sentence = std::move(sentence);
+            semanticNode.children = analyzeNodes(node.children);
+            result.push_back(std::move(semanticNode));
+        }
+        return result;
+    }
+
+    void Driver::dumpLattice(std::ostream& out) const {
+        for (const auto& lattice: lattices_) {
+            hebrew::dumpLattice(out, lattice);
+        }
+    }
+
+    void Driver::dumpHebrewIr(std::ostream& out) const {
+        for (const auto& sentence: sentenceIr_) {
+            hebrew::dumpSentenceIr(out, sentence);
+        }
+    }
+
+    void Driver::dumpSemanticIr(std::ostream& out) const {
+        fairy::dumpSemanticIr(out, program_);
+    }
+
+    void Driver::dumpIr(std::ostream& out) const {
+        out << "== Hebrew sentence IR ==\n";
+        dumpHebrewIr(out);
+        out << "== Resolved semantic IR ==\n";
+        dumpSemanticIr(out);
+    }
 
 } // namespace hyh
